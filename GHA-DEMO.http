@@ -1,0 +1,6 @@
+@GHA_DEMO_HostAddress = http://localhost:5069
+
+GET {{GHA_DEMO_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
