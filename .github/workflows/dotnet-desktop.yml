@@ -1,0 +1,46 @@
+name: Demo CI/CD Pipeline
+
+# Here I define what actions can trigger this pipeline to run
+on:
+  push:
+    branches: # Lines 4-7 tell Github Actions to run this workflow when someone pushes to main
+      - main
+  workflow_dispatch: # Workflow dispatch allows me to trigger my job manually from the github site UI
+
+# Here I'm gonna set some enviorment variables, this is totally optional but can save time later
+# if you end up using information more than once
+env:
+  AZURE_WEBAPP_NAME: ghademo 
+  AZURE_WEBAPP_PACKAGE_PATH: '.' # This is my path to my webapp project, setting it to the root of my repo
+  DOTNET_VERSION: '8.0.x' # this is the dotnet version that will install on my runner, and build my project
+
+# The following code creates a "job" and lists the steps needed to complete it
+jobs: 
+  build: 
+    runs-on: ubuntu-latest
+  
+  # Here are my job steps 
+    steps: 
+    # First, we checkout the repo - GHA views the files in my repo and passes them to the runner
+      - uses: actions/checkout@main
+
+    # Setup the .NET Core SDK
+      - name: Setup .NET Core 
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }} # Reading our enviornment variable for out dotnet version
+
+    # Run dotnet build and publish
+      - name: dotnet build and publish
+        run: | # Inside of the run argument, we just give it console commands to run on the runner
+          dotnet restore 
+          dotnet build --configuration Release
+          dotnet publish -c Release --property:PublishDir='${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
+
+    # Deploy to Azure Web app
+      - name: Run Azure webapp, deploy
+        uses: azure/webapps-deploy@v3
+        with: 
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }} # Pulling in that publish profile from my repo secrets
+          package: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/myapp'
